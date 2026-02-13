@@ -1,0 +1,66 @@
+name: 01 - CI Básico (Lint & Test)
+# ------------------------------------------------------------------
+# TUTORIAL: CI Básico
+# ------------------------------------------------------------------
+# Este archivo define un "Workflow" (Flujo de Trabajo).
+# Un Workflow es un proceso automatizado que GitHub ejecuta por ti.
+#
+# OBJETIVO:
+# Cada vez que alguien suba código ("push") o abra un "pull request",
+# queremos asegurarnos de que el código no rompa nada.
+#
+# ESTRUCTURA:
+# 1. 'name': Nombre legible del workflow.
+# 2. 'on': Eventos que disparan la ejecución (cuándo correr).
+# 3. 'jobs': Los trabajos a realizar.
+# ------------------------------------------------------------------
+
+# 1. EVENTOS (Triggers)
+# "Ejecútame cuando..."
+on:
+  push:
+    branches: ["main"] # ...alguien haga push a la rama 'main'
+  pull_request:
+    branches: ["main"] # ...alguien abra un Pull Request hacia 'main'
+  workflow_dispatch: # ...o cuando yo le dé al botón "Run workflow" manualmente
+
+# 2. TRABAJOS (Jobs)
+# "Qué tengo que hacer..."
+jobs:
+  # Nombre interno del trabajo (puede ser cualquier cosa, ej: 'verificar-codigo')
+  verificar-codigo:
+    name: Verificar Código (Lint & Test) # Nombre bonito que sale en la UI
+    runs-on: ubuntu-latest # Dónde correr (Linux es lo más común y barato/gratis)
+
+    # 3. PASOS (Steps)
+    # "Instrucciones paso a paso..."
+    steps:
+      # PASO 1: Descargar el código
+      # GitHub Actions NO tiene tu código por defecto. Tienes que "hacer checkout".
+      # 'uses' significa que usamos una Acción prefabricada por la comunidad (o GitHub).
+      - name: 1. Descargar repositorio (Checkout)
+        uses: actions/checkout@v4
+
+      # PASO 2: Preparar el entorno (Node.js)
+      # Instalamos Node.js versión 20.
+      - name: 2. Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm" # ¡Truco! Esto hace que npm install sea mucho más rápido después.
+
+      # PASO 3: Instalar dependencias
+      # Usamos 'npm ci' en lugar de 'npm install'.
+      # 'ci' (Clean Install) es más estricto y seguro para servidores.
+      - name: 3. Instalar librerías
+        run: npm ci
+
+      # PASO 4: Verificar estilo (Lint)
+      # Ejecuta el script "lint" definido en package.json
+      - name: 4. Verificar estilo (Lint)
+        run: npm run lint
+
+      # PASO 5: Correr tests
+      # Ejecuta el script "test" definido en package.json
+      - name: 5. Ejecutar pruebas (Test)
+        run: npm test

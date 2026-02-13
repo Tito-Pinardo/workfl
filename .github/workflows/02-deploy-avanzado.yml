@@ -1,0 +1,61 @@
+name: 02 - Despliegue Avanzado (Docker)
+# ------------------------------------------------------------------
+# TUTORIAL: Despliegue Avanzado
+# ------------------------------------------------------------------
+# Este workflow es más complejo. Muestra conceptos avanzados como:
+# - Variables de entorno (env)
+# - Permisos de seguridad (permissions)
+# - Secretos (secrets)
+# - Condicionales (if)
+# - Uso de outputs entre pasos
+# ------------------------------------------------------------------
+
+on:
+  push:
+    tags: ["v*.*.*"] # Solo corre cuando subes un tag como v1.0.0
+
+# VARIABLES GLOBALES
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  construir-y-publicar:
+    runs-on: ubuntu-latest
+
+    # PERMISOS
+    # Necesitamos permiso para escribir paquetes en GitHub Packages
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # LOGIN EN DOCKER
+      # Usamos un secreto automático (GITHUB_TOKEN) para no tener que gestionar contraseñas.
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # METADATOS DOCKER
+      # Esta acción genera los tags y labels automáticamente basándose en git.
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      # CONSTRUIR Y SUBIR
+      # Construye la imagen usando el Dockerfile del repo y la sube.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
